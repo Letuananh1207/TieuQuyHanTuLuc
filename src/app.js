@@ -89,25 +89,31 @@ passport.deserializeUser(async (id, done) => {
 /* 🧩 ROUTES */
 
 // Gọi để bắt đầu đăng nhập Google
-app.get(
-  "/api/auth/google",
-  (req, res, next) => {
-    // Lấy extensionId từ query param
-    const extensionId = req.query.extensionId;
-    if (!extensionId) return res.status(400).send("Extension ID required");
+app.get("/api/auth/google", (req, res, next) => {
+  const extensionId = req.query.extensionId;
+  if (!extensionId) return res.status(400).send("Extension ID required");
 
-    // Lưu vào session để callback sử dụng
-    req.session.extensionId = extensionId;
-    next();
-  },
-  passport.authenticate("google", { scope: ["profile", "email"] })
-);
+  console.log("🚀 Bắt đầu đăng nhập Google cho extension:", extensionId);
+
+  // dùng state để mang theo extensionId
+  passport.authenticate("google", {
+    scope: ["profile", "email"],
+    state: extensionId, // 👈 mang theo extensionId
+  })(req, res, next);
+});
 
 // Callback từ Google → trả JWT về cho extension
 app.get(
   "/api/auth/google/callback",
   passport.authenticate("google", { failureRedirect: "/login" }),
   (req, res) => {
+    const extensionId = req.query.state; // 👈 lấy từ state
+    console.log("✅ Google callback nhận user:", req.user?.email);
+    console.log("📦 Extension ID (từ state):", extensionId);
+
+    if (!extensionId)
+      return res.status(400).send("Missing extensionId in callback");
+
     const token = jwt.sign(
       {
         id: req.user._id,
@@ -118,11 +124,8 @@ app.get(
       { expiresIn: "7d" }
     );
 
-    // Lấy extensionId từ session
-    const extensionId = req.session.extensionId;
-    if (!extensionId) return res.status(400).send("Extension ID not found");
-
     const redirectUrl = `https://${extensionId}.chromiumapp.org/?token=${token}`;
+    console.log("🎯 Redirect về:", redirectUrl);
     res.redirect(redirectUrl);
   }
 );
