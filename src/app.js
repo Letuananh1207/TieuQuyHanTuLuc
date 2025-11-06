@@ -91,15 +91,6 @@ passport.deserializeUser(async (id, done) => {
 // Gọi để bắt đầu đăng nhập Google
 app.get(
   "/api/auth/google",
-  (req, res, next) => {
-    // Lấy extensionId từ query param
-    const extensionId = req.query.extensionId;
-    if (!extensionId) return res.status(400).send("Extension ID required");
-
-    // Lưu vào session để callback sử dụng
-    req.session.extensionId = extensionId;
-    next();
-  },
   passport.authenticate("google", { scope: ["profile", "email"] })
 );
 
@@ -118,11 +109,11 @@ app.get(
       { expiresIn: "7d" }
     );
 
-    // Lấy extensionId từ session
-    const extensionId = req.session.extensionId;
-    if (!extensionId) return res.status(400).send("Extension ID not found");
+    // URL đặc biệt cho Chrome extension nhận callback
+    const redirectUrl = `https://${
+      process.env.EXTENSION_ID || "your-extension-id"
+    }.chromiumapp.org/?token=${token}`;
 
-    const redirectUrl = `https://${extensionId}.chromiumapp.org/?token=${token}`;
     res.redirect(redirectUrl);
   }
 );
