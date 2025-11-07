@@ -156,6 +156,9 @@ app.get("/api/current_user", async (req, res) => {
   }
 });
 
+//Đánh thức Server
+app.get("/api/ping", (req, res) => res.json({ ok: true }));
+
 // Gắn route khác (lesson, unit, v.v.)
 app.use("/api", routes);
 
